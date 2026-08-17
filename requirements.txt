@@ -1,0 +1,10 @@
+# EdgeOne Makers SDK 的 PyPI 包名是 makers-sdk，公开 import 为 makers_sdk。
+# 源码仓库：https://github.com/QT-7274/edgeone-makers-sdk-dev
+# 发布前的 Starter 仍按相对路径安装本地源码，便于直接验证最新代码。
+#
+# 整个 Starter 只有这一行依赖 SDK 的位置：
+#   - 如果 SDK 仓库不在本仓库的同级目录，改下面的路径
+#   - 包正式发布后，替换为 `makers-sdk`
+#
+# 路径相对于执行 pip 时的工作目录，README 要求在仓库根目录执行。
+-e ../edgeone-makers-sdk-dev/packages/python

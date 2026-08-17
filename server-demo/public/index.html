@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EdgeOne Makers SDK · 调用观察台</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --ink: #14161a;
+        --ink-2: #5b6270;
+        --ink-3: #8b93a1;
+        --line: #e3e6ea;
+        --accent: #2f6df6;
+        --accent-soft: #eaf0fe;
+        --ok: #12855a;
+        --ok-soft: #e6f5ee;
+        --warn: #b26a00;
+        --warn-soft: #fdf2e0;
+        --err: #cf2f42;
+        --err-soft: #fdecee;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --radius: 10px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      header h1 { font-size: 15px; font-weight: 600; margin: 0; }
+      header .sub { color: var(--ink-3); font-size: 13px; }
+      header .spacer { flex: 1; }
+
+      .badge {
+        font: 500 12px/1 var(--mono);
+        padding: 5px 9px;
+        border-radius: 6px;
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .badge.warn { background: var(--warn-soft); color: var(--warn); }
+      .badge.err { background: var(--err-soft); color: var(--err); }
+
+      main {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 16px;
+        padding: 16px 20px 40px;
+        align-items: start;
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+      @media (max-width: 900px) {
+        main { grid-template-columns: 1fr; }
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+      .card + .card { margin-top: 14px; }
+      .card > h2 {
+        margin: 0;
+        padding: 11px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        border-bottom: 1px solid var(--line);
+      }
+      .card > .body { padding: 14px; }
+
+      label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; }
+      input[type="text"], textarea, select {
+        width: 100%;
+        padding: 8px 10px;
+        font: 13px/1.5 inherit;
+        color: var(--ink);
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        outline: none;
+      }
+      textarea { font-family: var(--mono); font-size: 12px; resize: vertical; min-height: 88px; }
+      input:focus, textarea:focus, select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .field + .field { margin-top: 12px; }
+
+      button {
+        font: 500 13px/1 inherit;
+        padding: 9px 14px;
+        border-radius: 7px;
+        border: 1px solid transparent;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        transition: filter 0.12s ease;
+      }
+      button:hover:not(:disabled) { filter: brightness(1.07); }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.ghost { background: transparent; border-color: var(--line); color: var(--ink-2); }
+      button.tiny { padding: 4px 8px; font-size: 12px; }
+      button.block { width: 100%; }
+
+      .scenarios {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .scenario {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        min-height: 46px;
+        margin: 0;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: border-color 0.12s ease, background 0.12s ease;
+      }
+      .scenario:hover { border-color: #c9cfd8; }
+      .scenario.on { border-color: var(--accent); background: var(--accent-soft); }
+      .scenario input { position: absolute; opacity: 0; pointer-events: none; }
+      .scenario .num {
+        display: grid;
+        width: 20px;
+        height: 20px;
+        flex: none;
+        place-items: center;
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--ink-3);
+        font: 600 11px/1 var(--mono);
+      }
+      .scenario.on .num { background: var(--accent); color: #fff; }
+      .scenario .t { display: block; font-size: 13px; font-weight: 600; line-height: 1.3; }
+      .scenario-summary {
+        margin-top: 10px;
+        padding: 10px 11px;
+        border-radius: 7px;
+        background: #f8f9fb;
+      }
+      .scenario-summary p { margin: 0; color: var(--ink-2); font-size: 12px; }
+      .scenario-summary .expected {
+        display: inline-block;
+        margin-top: 6px;
+        color: var(--accent);
+        font: 500 11px/1.4 var(--mono);
+      }
+      .no-input {
+        padding: 10px 11px;
+        border-radius: 7px;
+        background: #f8f9fb;
+        color: var(--ink-2);
+        font-size: 12px;
+      }
+      .action-row { margin-top: 14px; }
+
+      .run-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      .run-head .context { flex: 1; min-width: 0; }
+      .run-head .eyebrow {
+        display: block;
+        margin-bottom: 1px;
+        color: var(--ink-3);
+        font-size: 11px;
+      }
+      .run-head strong { font-size: 14px; font-weight: 600; }
+      .run-status {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f0f2f5;
+        color: var(--ink-2);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .run-status.running { background: var(--accent-soft); color: var(--accent); }
+      .run-status.done { background: var(--ok-soft); color: var(--ok); }
+      .run-status.fail { background: var(--err-soft); color: var(--err); }
+      .run-status.warn { background: var(--warn-soft); color: var(--warn); }
+
+      .steps {
+        display: flex;
+        padding: 14px 10px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .step {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        padding: 0 4px;
+        text-align: center;
+      }
+      .step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        z-index: 0;
+        top: 9px;
+        left: calc(50% + 13px);
+        right: calc(-50% + 13px);
+        height: 1px;
+        background: var(--line);
+      }
+      .step.done:not(:last-child)::after { background: #9bd2bd; }
+      .step .dot {
+        position: relative;
+        z-index: 1;
+        width: 18px; height: 18px; margin: 0 auto 5px;
+        border-radius: 50%;
+        border: 2px solid var(--line);
+        background: #fff;
+        display: grid; place-items: center;
+        font-size: 10px; color: transparent;
+      }
+      .step.done .dot { border-color: var(--ok); background: var(--ok); color: #fff; }
+      .step.active .dot { border-color: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
+      .step.fail .dot { border-color: var(--err); background: var(--err); color: #fff; }
+      @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 var(--accent-soft); } 50% { box-shadow: 0 0 0 5px var(--accent-soft); } }
+      .step .lbl { display: block; overflow: hidden; color: var(--ink-3); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+      .step.done .lbl, .step.active .lbl, .step.fail .lbl { color: var(--ink); }
+
+      .timeline { padding: 6px 0; min-height: 320px; }
+      .empty { padding: 72px 20px; text-align: center; color: var(--ink-3); font-size: 13px; }
+
+      .entry { border-bottom: 1px solid #f0f2f4; padding: 9px 14px; }
+      .entry:last-child { border-bottom: 0; }
+      .entry .head {
+        display: flex; align-items: center; gap: 8px;
+        cursor: pointer; user-select: none;
+      }
+      .entry .caret { color: var(--ink-3); font-size: 10px; width: 9px; flex: none; transition: transform 0.14s ease; }
+      .entry.open .caret { transform: rotate(90deg); }
+      .entry .method { font: 500 13px/1.4 var(--mono); }
+      .entry .grow { flex: 1; }
+      .entry .meta { font: 12px/1 var(--mono); color: var(--ink-3); flex: none; }
+      .entry .pill {
+        font: 500 11px/1 var(--mono);
+        padding: 3px 6px; border-radius: 5px; flex: none;
+        background: var(--accent-soft); color: var(--accent);
+      }
+      .entry .pill.ok { background: var(--ok-soft); color: var(--ok); }
+      .entry .pill.err { background: var(--err-soft); color: var(--err); }
+      .entry .detail { display: none; margin-top: 8px; }
+      .entry.open .detail { display: block; }
+
+      .kv { font: 12px/1.6 var(--mono); }
+      .kv .k { color: var(--ink-3); margin: 6px 0 2px; }
+      .kv pre {
+        margin: 0; padding: 8px 10px;
+        background: #fafbfc; border: 1px solid var(--line); border-radius: 6px;
+        overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+      }
+
+      .note {
+        display: flex; gap: 7px;
+        margin-top: 7px; padding: 7px 10px;
+        background: var(--warn-soft); border-radius: 6px;
+        font-size: 12px; color: #7a4a00; line-height: 1.5;
+      }
+      .note::before { content: "↑"; flex: none; font-weight: 700; }
+
+      .log { padding: 5px 14px 5px 36px; font: 12px/1.5 var(--mono); color: var(--ink-3); }
+      .log .lv { display: inline-block; min-width: 44px; color: var(--ink-3); }
+      .log.warn { color: var(--warn); }
+      .log.error { color: var(--err); }
+
+      .result { margin: 14px; padding: 14px; border-radius: 8px; }
+      .result.ok { background: var(--ok-soft); border: 1px solid #bfe4d3; }
+      .result.err { background: var(--err-soft); border: 1px solid #f5c9cf; }
+      .result h3 { margin: 0 0 6px; font-size: 13px; }
+      .result.ok h3 { color: var(--ok); }
+      .result.err h3 { color: var(--err); }
+      .result a { color: var(--accent); font-family: var(--mono); font-size: 13px; word-break: break-all; }
+      .result .detail { font: 12px/1.6 var(--mono); color: var(--ink-2); margin-top: 6px; }
+
+      .proj { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f0f2f4; }
+      .proj:last-child { border-bottom: 0; }
+      .proj .n { flex: 1; font: 12px/1.4 var(--mono); word-break: break-all; }
+      .proj .d { font-size: 11px; color: var(--ink-3); }
+
+      .hintbox {
+        margin: 0; padding: 10px 14px;
+        background: var(--warn-soft); border-bottom: 1px solid var(--line);
+        font-size: 12px; color: #7a4a00;
+      }
+      .hintbox code { font-family: var(--mono); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>EdgeOne Makers SDK</h1>
+      <span class="sub">交互体验</span>
+      <span class="spacer"></span>
+      <span class="badge" id="badge-runtime">运行时 …</span>
+      <span class="badge" id="badge-region">区域 …</span>
+      <span class="badge" id="badge-token">Token …</span>
+    </header>
+
+    <main>
+      <!-- ───────────────────────── 左栏：操作 ───────────────────────── -->
+      <section>
+        <div class="card">
+          <h2>1. 选择场景</h2>
+          <div class="body">
+            <div class="scenarios" id="scenarios"></div>
+            <div class="scenario-summary" id="scenario-summary"></div>
+          </div>
+        </div>
+
+        <div class="card" id="card-inputs">
+          <h2>2. 设置并执行</h2>
+          <div class="body">
+            <div id="input-fields">
+              <div class="field" id="field-name">
+                <label for="in-name">项目名称</label>
+                <input type="text" id="in-name" autocomplete="off" />
+              </div>
+              <div class="field" id="field-html">
+                <label for="in-html">页面 HTML</label>
+                <textarea id="in-html" spellcheck="false"></textarea>
+              </div>
+            </div>
+            <div class="no-input" id="no-input" hidden>无需填写参数，将使用无效项目 ID 发起部署。</div>
+            <div class="action-row">
+              <button class="block" id="btn-run">开始部署</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>
+            演示项目管理
+            <span style="float: right; text-transform: none; letter-spacing: 0">
+              <button class="tiny ghost" id="btn-refresh">刷新</button>
+            </span>
+          </h2>
+          <div class="body" id="projects">
+            <div style="color: var(--ink-3); font-size: 12px">尚未加载</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────────────────── 右栏：时间线 ───────────────────────── -->
+      <section class="card">
+        <h2>
+          执行过程
+          <span style="float: right; text-transform: none; letter-spacing: 0">
+            <label style="display: inline; font-size: 12px; color: var(--ink-3)">
+              <input type="checkbox" id="chk-logs" checked style="width: auto; vertical-align: -1px" />
+              内部事件
+            </label>
+            <button class="tiny ghost" id="btn-clear" style="margin-left: 8px">清空</button>
+          </span>
+        </h2>
+        <div class="run-head">
+          <div class="context">
+            <span class="eyebrow">当前场景</span>
+            <strong id="run-title">完整部署</strong>
+          </div>
+          <span class="run-status" id="run-status">等待开始</span>
+        </div>
+        <div class="steps" id="steps"></div>
+        <div id="result-slot"></div>
+        <div class="timeline" id="timeline">
+          <div class="empty">点击「开始部署」，SDK 调用会按顺序显示在这里。</div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      // ═══════════════════════════════════════════════════════════════
+      // 这个页面在 Node 与 Python 两个 Starter 仓库里逐字节相同。
+      // 它只跟 /api/* 打交道，不关心后端是哪种语言 —— 这本身就是
+      // 「两语言 SDK 语义一致」最直接的证明。
+      //
+      // 注意：页面从头到尾拿不到 MAKERS_API_TOKEN。Token 只存在于
+      // 后端进程的环境变量里。这是 Serverless 接入 SDK 的硬性要求。
+      // ═══════════════════════════════════════════════════════════════
+
+      const $ = (id) => document.getElementById(id);
+
+      const SCENARIOS = [
+        {
+          id: "normal",
+          title: "完整部署",
+          desc: "创建项目并部署页面，观察完整调用链。",
+          expected: "预期：部署成功",
+          action: "开始部署",
+          fields: ["name", "html"],
+          error: null,
+        },
+        {
+          id: "conflict",
+          title: "名称冲突",
+          desc: "连续创建两个同名项目，观察冲突处理。",
+          expected: "预期：ConflictError · HTTP 409",
+          action: "触发冲突",
+          fields: ["name"],
+          error: "ConflictError",
+        },
+        {
+          id: "preview-precheck",
+          title: "Preview 校验",
+          desc: "在没有 Production 部署时发起 Preview。",
+          expected: "预期：ValidationError · HTTP 400",
+          action: "触发校验",
+          fields: ["name", "html"],
+          error: "ValidationError",
+        },
+        {
+          id: "not-found",
+          title: "资源不存在",
+          desc: "使用无效项目 ID 发起部署，观察错误映射。",
+          expected: "预期：NotFoundError · HTTP 404",
+          action: "触发错误",
+          fields: [],
+          error: "NotFoundError",
+        },
+      ];
+
+      const STEPS = {
+        normal: [
+          ["create", "创建项目"],
+          ["deploy", "发起部署"],
+          ["poll", "轮询状态"],
+          ["domain", "获取域名"],
+        ],
+        conflict: [
+          ["create", "首次创建"],
+          ["conflict", "重复创建"],
+        ],
+        "preview-precheck": [
+          ["create", "创建项目"],
+          ["precheck", "Preview 部署"],
+        ],
+        "not-found": [["deploy", "发起部署"]],
+      };
+
+      let selected = "normal";
+      let running = false;
+      let showLogs = true;
+
+      // ── API 封装 ──────────────────────────────────────────────────
+      // 每个响应统一是 { ok, data?, error?, trace[] }。trace 是这个 demo
+      // 加的观察层，不是 SDK 的一部分。
+
+      async function call(method, path, body, { showTrace = true } = {}) {
+        const res = await fetch(path, {
+          method,
+          headers: body ? { "Content-Type": "application/json" } : undefined,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        let payload;
+        try {
+          payload = await res.json();
+        } catch {
+          throw new Error(`${method} ${path} 返回了非 JSON 响应（HTTP ${res.status}）`);
+        }
+        if (showTrace) (payload.trace || []).forEach(renderTrace);
+        if (!payload.ok) {
+          const err = new Error(payload.error?.message || "请求失败");
+          err.payload = payload.error;
+          err.httpStatus = res.status;
+          throw err;
+        }
+        return payload.data;
+      }
+
+      const api = {
+        config: () => call("GET", "/api/config", undefined, { showTrace: false }),
+        createProject: (name) => call("POST", "/api/projects", { name }),
+        listProjects: () => call("GET", "/api/projects", undefined, { showTrace: false }),
+        getProject: (id) => call("GET", `/api/projects/${encodeURIComponent(id)}`),
+        deleteProject: (id) =>
+          call("DELETE", `/api/projects/${encodeURIComponent(id)}`, undefined, { showTrace: false }),
+        deploy: (projectId, html, env) =>
+          call("POST", "/api/deployments", { projectId, html, env }),
+        getDeployment: (projectId, id) =>
+          call("GET", `/api/deployments/${encodeURIComponent(id)}?projectId=${encodeURIComponent(projectId)}`),
+        getLog: (projectId, id) =>
+          call("GET", `/api/deployments/${encodeURIComponent(id)}/log?projectId=${encodeURIComponent(projectId)}`),
+        scenario: (name, body) => call("POST", `/api/scenarios/${name}`, body),
+      };
+
+      // ── 时间线渲染 ────────────────────────────────────────────────
+
+      let pollGroup = null; // 把连续的轮询折叠成一行
+
+      function timelineEl() {
+        const el = $("timeline");
+        const empty = el.querySelector(".empty");
+        if (empty) empty.remove();
+        return el;
+      }
+
+      function json(value) {
+        return value === undefined ? "undefined" : JSON.stringify(value, null, 2);
+      }
+
+      function renderTrace(item) {
+        if (item.kind === "log") return renderLog(item);
+        if (item.kind === "note") return renderNote(item);
+        return renderCall(item);
+      }
+
+      function renderCall(item) {
+        const el = timelineEl();
+
+        // deployments.get 连发多次时合并计数，否则时间线会被轮询刷屏。
+        const pollable = item.method.endsWith("deployments.get");
+        if (pollable && pollGroup && pollGroup.method === item.method) {
+          pollGroup.count += 1;
+          pollGroup.statuses.push(item.response?.status ?? "?");
+          const uniq = [...new Set(pollGroup.statuses.filter(Boolean))];
+          pollGroup.node.querySelector(".meta").textContent = `×${pollGroup.count}`;
+          pollGroup.node.querySelector(".pill").textContent = uniq.join(" → ");
+          pollGroup.node.querySelector(".detail").innerHTML = kv({
+            请求: item.request,
+            "最近一次响应": item.response,
+          });
+          return;
+        }
+
+        const entry = document.createElement("div");
+        entry.className = "entry";
+        const failed = Boolean(item.error);
+        entry.innerHTML = `
+          <div class="head">
+            <span class="caret">▶</span>
+            <span class="method">${escapeHtml(item.method)}</span>
+            <span class="grow"></span>
+            <span class="pill ${failed ? "err" : "ok"}">${escapeHtml(
+              failed ? item.error.name : summarize(item.response),
+            )}</span>
+            <span class="meta">${item.durationMs}ms</span>
+          </div>
+          <div class="detail">${kv({
+            请求: item.request,
+            [failed ? "错误" : "响应"]: failed ? item.error : item.response,
+          })}</div>`;
+        entry.querySelector(".head").addEventListener("click", () => entry.classList.toggle("open"));
+        if (failed) entry.classList.add("open");
+        el.appendChild(entry);
+        scrollDown();
+
+        pollGroup = pollable
+          ? { method: item.method, count: 1, statuses: [item.response?.status ?? "?"], node: entry }
+          : null;
+      }
+
+      function renderNote(item) {
+        const el = timelineEl();
+        const last = el.lastElementChild;
+        const note = document.createElement("div");
+        note.className = "note";
+        note.textContent = item.text;
+        if (last && last.classList.contains("entry")) {
+          last.querySelector(".detail").appendChild(note);
+          last.classList.add("open");
+        } else {
+          el.appendChild(note);
+        }
+        scrollDown();
+      }
+
+      function renderLog(item) {
+        const el = timelineEl();
+        const line = document.createElement("div");
+        line.className = `log ${item.level}`;
+        line.dataset.log = "1";
+        line.hidden = !showLogs;
+        line.innerHTML = `<span class="lv">[${escapeHtml(item.level)}]</span>${escapeHtml(
+          item.message,
+        )}${item.context ? " " + escapeHtml(JSON.stringify(item.context)) : ""}`;
+        el.appendChild(line);
+        scrollDown();
+      }
+
+      function summarize(response) {
+        if (response == null) return "void";
+        if (typeof response !== "object") return String(response);
+        const keys = Object.keys(response);
+        if (keys.length === 0) return "{}";
+        if (response.status) return String(response.status);
+        return keys.length <= 3 ? keys.join(", ") : `${keys.length} 个字段`;
+      }
+
+      function kv(map) {
+        return (
+          '<div class="kv">' +
+          Object.entries(map)
+            .filter(([, v]) => v !== undefined)
+            .map(([k, v]) => `<div class="k">${escapeHtml(k)}</div><pre>${escapeHtml(json(v))}</pre>`)
+            .join("") +
+          "</div>"
+        );
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        })[c]);
+      }
+
+      function scrollDown() {
+        const el = $("timeline");
+        el.scrollTop = el.scrollHeight;
+      }
+
+      function currentScenario() {
+        return SCENARIOS.find((scenario) => scenario.id === selected);
+      }
+
+      function setRunStatus(kind, text) {
+        const el = $("run-status");
+        el.className = `run-status ${kind || ""}`;
+        el.textContent = text;
+      }
+
+      function clearTimeline() {
+        const scenario = currentScenario();
+        $("timeline").innerHTML =
+          `<div class="empty">点击「${escapeHtml(scenario.action)}」，SDK 调用会按顺序显示在这里。</div>`;
+        $("result-slot").innerHTML = "";
+        pollGroup = null;
+        renderSteps();
+        setRunStatus("", "等待开始");
+      }
+
+      // ── 步骤条 ───────────────────────────────────────────────────
+
+      function renderSteps(state = {}) {
+        $("steps").innerHTML = (STEPS[selected] || [])
+          .map(([id, label]) => {
+            const cls = state[id] || "";
+            return `<div class="step ${cls}">
+              <span class="dot">${cls === "fail" ? "!" : "✓"}</span>
+              <span class="lbl">${escapeHtml(label)}</span>
+            </div>`;
+          })
+          .join("");
+      }
+
+      function showResult(kind, title, html) {
+        $("result-slot").innerHTML = `<div class="result ${kind}"><h3>${escapeHtml(title)}</h3>${html}</div>`;
+      }
+
+      // ── 流程 ─────────────────────────────────────────────────────
+
+      async function runNormal(state) {
+        const name = $("in-name").value.trim();
+        const html = $("in-html").value;
+
+        state.create = "active"; renderSteps(state);
+        const { projectId } = await api.createProject(name);
+        state.create = "done";
+
+        state.deploy = "active"; renderSteps(state);
+        const { deploymentId } = await api.deploy(projectId, html, "Production");
+        state.deploy = "done";
+
+        state.poll = "active"; renderSteps(state);
+        const TERMINAL = ["Success", "Failed", "Timeout", "Cancelled", "Invalid"];
+        let status = null;
+        for (let i = 0; i < 150; i += 1) {
+          const got = await api.getDeployment(projectId, deploymentId);
+          status = got.status;
+          if (status && TERMINAL.includes(status)) break;
+          await sleep(2000);
+        }
+        pollGroup = null;
+
+        if (status !== "Success") {
+          state.poll = "fail"; renderSteps(state);
+          const { logUrl } = await api.getLog(projectId, deploymentId);
+          showResult(
+            "err",
+            `部署结束但未成功（${status ?? "未知状态"}）`,
+            `<div class="detail">wait 只在「等不下去」时抛异常，部署自身失败是正常返回的，要自己判断状态。</div>
+             <div class="detail">构建日志：<a href="${escapeHtml(logUrl)}" target="_blank" rel="noreferrer">${escapeHtml(logUrl)}</a></div>`,
+          );
+          return false;
+        }
+        state.poll = "done";
+
+        state.domain = "active"; renderSteps(state);
+        const { project } = await api.getProject(projectId);
+        state.domain = "done"; renderSteps(state);
+
+        if (project.presetDomain) {
+          const url = `https://${project.presetDomain}`;
+          showResult(
+            "ok",
+            "部署成功",
+            `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>
+             <div class="detail">这个地址来自 projects.get 的 presetDomain，不在部署结果里。</div>`,
+          );
+        } else {
+          showResult(
+            "ok",
+            "部署成功，但还没分配域名",
+            `<div class="detail">presetDomain 是可选字段，稍后再查一次 projects.get 即可。</div>`,
+          );
+        }
+        return true;
+      }
+
+      async function runScenario(state) {
+        const first = STEPS[selected][0][0];
+        state[first] = "active"; renderSteps(state);
+        try {
+          await api.scenario(selected, {
+            name: $("in-name").value.trim(),
+            html: $("in-html").value,
+          });
+          state[first] = "done"; renderSteps(state);
+          throw new Error("没有触发预期错误，后端行为可能已变化。");
+        } catch (error) {
+          const e = error.payload || {};
+          if (e.name !== currentScenario().error) throw error;
+          const steps = STEPS[selected];
+          steps.forEach(([id], i) => { state[id] = i === steps.length - 1 ? "fail" : "done"; });
+          renderSteps(state);
+          showResult(
+            "err",
+            `${e.name} · HTTP ${error.httpStatus}`,
+            `<div class="detail">${escapeHtml(e.message || error.message)}</div>
+             <div class="detail">${e.code ? `code=${escapeHtml(e.code)}` : ""}${
+               e.requestId ? ` · requestId=${escapeHtml(e.requestId)}` : ""
+             }</div>`,
+          );
+        }
+      }
+
+      async function run() {
+        if (running) return;
+        running = true;
+        const scenario = currentScenario();
+        $("btn-run").disabled = true;
+        $("btn-run").textContent = "执行中…";
+        clearTimeline();
+        const state = {};
+        renderSteps(state);
+        setRunStatus("running", "执行中");
+        try {
+          if (selected === "normal") {
+            const succeeded = await runNormal(state);
+            setRunStatus(succeeded ? "done" : "fail", succeeded ? "执行完成" : "部署失败");
+          } else {
+            await runScenario(state);
+            setRunStatus("done", "已触发预期错误");
+          }
+        } catch (error) {
+          const e = error.payload || {};
+          const active = Object.keys(state).find((key) => state[key] === "active");
+          if (active) {
+            state[active] = "fail";
+            renderSteps(state);
+          }
+          setRunStatus("fail", "执行失败");
+          showResult(
+            "err",
+            e.name || "执行失败",
+            `<div class="detail">${escapeHtml(e.message || error.message)}</div>`,
+          );
+        } finally {
+          running = false;
+          $("btn-run").disabled = false;
+          $("btn-run").textContent = scenario.action;
+          refreshProjects().catch(() => {});
+        }
+      }
+
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      // ── 演示项目清理 ──────────────────────────────────────────────
+      // 每跑一次就在账号里建一个真项目。没有清理入口的话，
+      // 这个 demo 很快会变成一堆垃圾数据。
+
+      async function refreshProjects() {
+        const box = $("projects");
+        try {
+          const { items } = await api.listProjects();
+          if (items.length === 0) {
+            box.innerHTML = '<div style="color: var(--ink-3); font-size: 12px">没有演示项目</div>';
+            return;
+          }
+          box.innerHTML = "";
+          items.forEach((p) => {
+            const row = document.createElement("div");
+            row.className = "proj";
+            row.innerHTML = `<span class="n">${escapeHtml(p.name)}<br /><span class="d">${escapeHtml(
+              p.createdOn || "",
+            )}</span></span>`;
+            const btn = document.createElement("button");
+            btn.className = "tiny ghost";
+            btn.textContent = "删除";
+            btn.addEventListener("click", async () => {
+              btn.disabled = true;
+              btn.textContent = "删除中";
+              try {
+                await api.deleteProject(p.projectId);
+                await refreshProjects();
+              } catch {
+                btn.disabled = false;
+                btn.textContent = "重试";
+              }
+            });
+            row.appendChild(btn);
+            box.appendChild(row);
+          });
+        } catch {
+          box.innerHTML = '<div style="color: var(--err); font-size: 12px">加载失败</div>';
+        }
+      }
+
+      // ── 初始化 ───────────────────────────────────────────────────
+
+      function renderScenarios() {
+        $("scenarios").innerHTML = SCENARIOS.map(
+          (s, index) => `<label class="scenario ${s.id === selected ? "on" : ""}" data-id="${s.id}">
+            <input type="radio" name="scenario" value="${s.id}" ${s.id === selected ? "checked" : ""} />
+            <span class="num">${index + 1}</span>
+            <span class="t">${escapeHtml(s.title)}</span>
+          </label>`,
+        ).join("");
+
+        const scenario = currentScenario();
+        $("scenario-summary").innerHTML =
+          `<p>${escapeHtml(scenario.desc)}</p><span class="expected">${escapeHtml(scenario.expected)}</span>`;
+        $("run-title").textContent = scenario.title;
+        $("btn-run").textContent = scenario.action;
+        $("field-name").hidden = !scenario.fields.includes("name");
+        $("field-html").hidden = !scenario.fields.includes("html");
+        $("input-fields").hidden = scenario.fields.length === 0;
+        $("no-input").hidden = scenario.fields.length !== 0;
+
+        $("scenarios").querySelectorAll(".scenario").forEach((el) => {
+          el.addEventListener("change", () => {
+            selected = el.dataset.id;
+            resetName();
+            renderScenarios();
+            clearTimeline();
+          });
+        });
+      }
+
+      function resetName() {
+        $("in-name").value = `sdk-demo-${Date.now()}`;
+      }
+
+      async function init() {
+        $("in-html").value =
+          '<!doctype html>\n<html lang="zh-CN">\n  <head><meta charset="utf-8" /><title>Hello EdgeOne</title></head>\n  <body>\n    <h1>Hello EdgeOne Makers</h1>\n    <p>这个页面由 SDK 的 server-demo 部署。</p>\n  </body>\n</html>\n';
+        resetName();
+        renderScenarios();
+        renderSteps();
+
+        $("btn-run").addEventListener("click", run);
+        $("btn-clear").addEventListener("click", clearTimeline);
+        $("btn-refresh").addEventListener("click", () => refreshProjects());
+        $("chk-logs").addEventListener("change", (e) => {
+          showLogs = e.target.checked;
+          document.querySelectorAll("[data-log]").forEach((el) => { el.hidden = !showLogs; });
+        });
+
+        try {
+          const cfg = await api.config();
+          $("badge-runtime").textContent = cfg.runtime === "node" ? "Node.js" : "Python";
+          $("badge-region").textContent = cfg.region ? `区域：${cfg.region}` : "区域：自动";
+          if (!cfg.region) $("badge-region").className = "badge warn";
+          if (cfg.hasToken) {
+            $("badge-token").textContent = "Token：就绪";
+          } else {
+            $("badge-token").textContent = "Token：缺失";
+            $("badge-token").className = "badge err";
+            $("btn-run").disabled = true;
+            document.querySelector("main").insertAdjacentHTML(
+              "beforebegin",
+              '<p class="hintbox">后端没有读到 <code>MAKERS_API_TOKEN</code>。把仓库根目录的 <code>.env.example</code> 复制成 <code>.env</code> 填入 token，然后重启服务。</p>',
+            );
+          }
+          await refreshProjects();
+        } catch {
+          $("badge-token").textContent = "服务：未就绪";
+          $("badge-token").className = "badge err";
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+# EdgeOne Cloud Functions 部署单元的依赖。平台构建时按这里安装。
+#
+# 正式发布前 makers-sdk 还不在 PyPI 上，所以这一行现在装不上，
+# 也就是说 Cloud Functions 形态要等包发布后才能真正部署。
+# 本地 dev_server.py 不受影响，它用仓库根目录 .venv 里的可编辑安装。
+makers-sdk>=0.1.0
