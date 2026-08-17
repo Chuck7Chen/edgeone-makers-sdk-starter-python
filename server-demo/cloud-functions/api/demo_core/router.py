@@ -187,8 +187,6 @@ def _list_projects(env: Mapping[str, str | None], trace: Trace) -> Any:
 
 def _get_project(project_id: str, env: Mapping[str, str | None], trace: Trace) -> Any:
     client = create_client(env, trace)
-    # 已知问题：SDK v0.1.0 的 projects.get 打的是后端不存在的单数 Action
-    # DescribePagesProject，目前必定返回 Code 107。SDK 修好后这里无需改动。
     project = trace.record(
         "client.projects.get",
         {"project_id": project_id},

@@ -136,9 +136,3 @@ Makers SDK 是 Python 包，必须用 Cloud Functions。
 
 部署时还需要：在 Makers 控制台配置 `MAKERS_API_TOKEN` 环境变量，并把静态资源
 输出目录指向 `server-demo/public`。
-
-## 已知问题
-
-**`projects.get` 目前必定失败。** SDK v0.1.0 打的是后端不存在的单数 Action
-`DescribePagesProject`，返回 `Code 107 "Action has not found."`。正常部署流程的
-第 4 步会卡在这里。这个 demo 按标准用法实现，等 SDK 修好后无需改动即可验证。
