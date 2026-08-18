@@ -11,15 +11,7 @@ Targets contract version `0.1.21`.
 ## Prerequisites
 
 - Python 3.10+
-- Clone the [SDK repository](https://github.com/QT-7274/edgeone-makers-sdk-dev) next to this one. The SDK repository is private before public release, so your GitHub account needs access:
-
-```text
-Code/
-├── edgeone-makers-sdk-dev/             # SDK repository
-└── edgeone-makers-sdk-starter-python/  # this repository
-```
-
-If the SDK lives elsewhere, change the single path in `requirements.txt`.
+- A Makers API token
 
 ## 60 seconds to first deploy
 
@@ -111,14 +103,22 @@ return value, and duration — in real time. It also lets you trigger
 .venv/bin/python server-demo/dev_server.py   # open http://localhost:8787
 ```
 
+It is also laid out for EdgeOne Makers: `edgeone.json` at the repository root
+points the static output at `server-demo/public`, and `cloud-functions/` sits at
+the root because that is the only place EdgeOne scans for functions. The one
+manual step is setting `MAKERS_API_TOKEN` in the console.
+
 See [`server-demo/README.md`](server-demo/README.md).
 
 ## SDK dependency
 
-The PyPI package is `makers-sdk`, imported as `makers_sdk`; its source lives in
+This starter depends on the published PyPI package `makers-sdk`, currently at
+`0.1.0b1`, imported as `makers_sdk`. Source lives in
 [QT-7274/edgeone-makers-sdk-dev](https://github.com/QT-7274/edgeone-makers-sdk-dev).
-Until the package is published, `requirements.txt` installs it from the sibling source
-repository. After publishing, replace the editable path with the released package version.
+
+The package is still a pre-release, so breaking changes between betas are possible and
+`requirements.txt` pins an exact version. Note that `>=0.1.0` does not match `0.1.0b1` —
+under PEP 440 a pre-release sorts before its final release.
 
 ## What comes next
 

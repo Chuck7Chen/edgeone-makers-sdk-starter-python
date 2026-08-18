@@ -21,7 +21,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PUBLIC_DIR = HERE / "public"
-FUNCTIONS_DIR = HERE / "cloud-functions" / "api"
+# cloud-functions/ 必须在仓库根：EdgeOne 只扫描项目根目录下的这一个位置。
+FUNCTIONS_DIR = HERE.parent / "cloud-functions" / "api"
 PORT = int(os.environ.get("PORT", "8787"))
 
 

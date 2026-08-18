@@ -11,15 +11,7 @@
 ## 前置条件
 
 - Python 3.10+
-- 把 [SDK 源码仓库](https://github.com/QT-7274/edgeone-makers-sdk-dev) clone 到本仓库同级目录。SDK 正式公开前该仓库为私有仓库，GitHub 账号需要有访问权限：
-
-```text
-Code/
-├── edgeone-makers-sdk-dev/             # SDK 主仓库
-└── edgeone-makers-sdk-starter-python/  # 本仓库
-```
-
-如果 SDK 在别的位置，改 `requirements.txt` 里的那一行路径。
+- 一个 Makers API token
 
 ## 60 秒上手
 
@@ -110,14 +102,20 @@ SDK 的所有失败都抛 `MakersError` 的子类，异常上带 `code`、`reque
 .venv/bin/python server-demo/dev_server.py   # 打开 http://localhost:8787
 ```
 
+它也可以直接部署到 EdgeOne Makers：仓库根的 `edgeone.json` 已经把静态目录指向
+`server-demo/public`，`cloud-functions/` 放在仓库根是因为 EdgeOne 只扫描这一个位置。
+唯一要手动做的是在控制台配置 `MAKERS_API_TOKEN`。
+
 详见 [`server-demo/README.md`](server-demo/README.md)。
 
 ## SDK 依赖
 
-SDK 的 PyPI 包名是 `makers-sdk`，公开 import 为 `makers_sdk`，源码位于
+本 Starter 直接依赖已发布的 PyPI 包 `makers-sdk`，当前版本 `0.1.0b1`，公开 import
+为 `makers_sdk`，源码位于
 [QT-7274/edgeone-makers-sdk-dev](https://github.com/QT-7274/edgeone-makers-sdk-dev)。
-正式发布前，`requirements.txt` 从同级源码仓库做 editable install；发布后把相对路径
-换成正式包版本即可，示例代码无需修改。
+
+该包仍处于预发布阶段，beta 之间可能有破坏性变更，所以 `requirements.txt` 锁的是精确
+版本。注意 `>=0.1.0` 这类写法匹配不到 `0.1.0b1`——PEP 440 下预发布版排在正式版之前。
 
 ## 后续内容
 

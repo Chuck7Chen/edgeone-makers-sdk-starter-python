@@ -45,20 +45,29 @@ cp .env.example .env   # 编辑填入 MAKERS_API_TOKEN
 ## 结构
 
 ```text
-server-demo/
-├── public/index.html                前端，无框架无构建，单文件
-├── dev_server.py                    Adapter A：本地 http.server
-└── cloud-functions/                 Adapter B：EdgeOne Cloud Functions 部署单元
-    ├── requirements.txt
-    └── api/
-        ├── [[default]].py           catch-all 入口，handler 类
-        └── demo_core/               框架无关的实现，两个 adapter 共用
-            ├── router.py            路由与端点
-            ├── client.py            Client 工厂
-            ├── trace.py             调用观察层
-            ├── scenarios.py         错误场景
-            └── errors.py            异常 → HTTP 状态码
+仓库根/
+├── edgeone.json                     部署配置：静态目录指向 server-demo/public
+├── cloud-functions/                 Adapter B：EdgeOne Cloud Functions 部署单元
+│   ├── requirements.txt
+│   └── api/
+│       ├── [[default]].py           catch-all 入口，handler 类
+│       └── demo_core/               框架无关的实现，两个 adapter 共用
+│           ├── router.py            路由与端点
+│           ├── client.py            Client 工厂
+│           ├── trace.py             调用观察层
+│           ├── scenarios.py         错误场景
+│           └── errors.py            异常 → HTTP 状态码
+└── server-demo/
+    ├── public/index.html            前端，无框架无构建，单文件
+    └── dev_server.py                Adapter A：本地 http.server
 ```
+
+`cloud-functions/` 放在**仓库根**是必须的：EdgeOne 只扫描项目根目录下的
+`./cloud-functions/`。放在 `server-demo/` 里的话，静态页面能部署成功，但所有
+`/api/*` 会返回平台级 404 —— 函数 Builder 根本没被触发。
+
+`demo_core/` 里的文件都不含入口标识（没有 `handler` 类、没有框架实例），
+按平台的「入口文件识别」规则会被当成辅助模块复制进产物，不会注册成路由。
 
 Python 侧有个便宜可占：EdgeOne Cloud Functions 的 Handler 模式用的就是标准库的
 `BaseHTTPRequestHandler`，和本地 `http.server` 同一个基类。所以
@@ -118,11 +127,19 @@ demo 不能做成纯静态页——必须有个后端替浏览器持有凭证。
 
 ## 部署到 Cloud Functions
 
-`cloud-functions/` 是按 EdgeOne 的约定组织的，可以直接部署——**但要等 SDK 发布**。
+目录结构和构建配置都已就绪：仓库根的 `edgeone.json` 把静态目录指向
+`server-demo/public`，`cloud-functions/` 在仓库根，平台的 Python Builder 会把它
+构建到 `cloud-functions/api-python/`。不需要构建命令，页面是手写的单文件 HTML。
 
-平台构建时按 `cloud-functions/requirements.txt` 从 PyPI 装依赖，而 `makers-sdk`
-目前还没发布。包发布后即可部署，代码不用改。本地 `dev_server.py` 不受影响，
-它用的是仓库根 `.venv` 里的可编辑安装。
+依赖由平台按 `cloud-functions/requirements.txt` 从 PyPI 安装，该文件优先级高于
+仓库根的 `requirements.txt`。
+
+**唯一需要手动做的是配置环境变量**：在 Makers 控制台的 Production 与 Preview
+两个环境里都填上 `MAKERS_API_TOKEN`，并建议显式填 `MAKERS_REGION`，省掉 SDK
+每次冷启动的区域探测请求。Handler 模式下函数通过 `os.environ` 读取它们。
+
+漏配 token 不会 404，而是所有接口返回 **HTTP 503**（`MissingTokenError`）。
+如果看到的是 404，那是路由没注册，去查 `cloud-functions/` 是不是在仓库根。
 
 另外要注意 **Edge Functions 跑不了这个 SDK**。EdgeOne 有两种函数形态：
 
@@ -133,6 +150,3 @@ demo 不能做成纯静态页——必须有个后端替浏览器持有凭证。
 | 第三方包 | 不支持 | 支持 |
 
 Makers SDK 是 Python 包，必须用 Cloud Functions。
-
-部署时还需要：在 Makers 控制台配置 `MAKERS_API_TOKEN` 环境变量，并把静态资源
-输出目录指向 `server-demo/public`。
